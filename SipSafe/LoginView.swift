@@ -1,95 +1,106 @@
 import SwiftUI
+import FirebaseAuth
 
 struct LoginView: View {
-    @State private var firstName: String = ""
-    @State private var lastName: String = ""
-    @State private var schoolName: String = ""
-    @State private var username: String = ""
-    @State private var password: String = ""
-    @State private var uwNetID: String = ""
+    @Binding var isLoggedIn: Bool
+    @State private var email = ""
+    @State private var password = ""
+    @State private var errorMessage = ""
+    @State private var isErrorPresented = false
+    @State private var isLoading = false
+    @State private var isCreatingAccount = false // Track whether the user is creating an account
 
     var body: some View {
-        ZStack {
-            // Background image
-            Image("background_image_name") // Replace with your image name
-                .resizable() 
-                .scaledToFill() // Ensures the image fills the screen
-                .edgesIgnoringSafeArea(.all) // Makes the image extend to all edges
+        VStack {
+            Text(isCreatingAccount ? "Create an Account" : "Welcome to SipSafe")
+                .font(.largeTitle)
+                .padding()
 
-            // Content in the foreground
-            VStack {
-                // First row: First Name and Last Name
-                HStack {
-                    TextField("First Name", text: $firstName)
-                        .padding()
-                        .background(Color.white.opacity(0.8)) // Semi-transparent background for input
-                        .cornerRadius(10)
-                        .frame(height: 50)
+            TextField("Email", text: $email)
+                .padding()
+                .background(Color.gray.opacity(0.2))
+                .cornerRadius(8)
+                .padding(.bottom, 10)
 
-                    TextField("Last Name", text: $lastName)
-                        .padding()
-                        .background(Color.white.opacity(0.8))
-                        .cornerRadius(10)
-                        .frame(height: 50)
-                }
-                .padding([.leading, .trailing])
+            SecureField("Password", text: $password)
+                .padding()
+                .background(Color.gray.opacity(0.2))
+                .cornerRadius(8)
+                .padding(.bottom, 20)
 
-                // Second row: College/School Name
-                TextField("College/School Name", text: $schoolName)
+            if isLoading {
+                ProgressView("Processing...")
+                    .progressViewStyle(CircularProgressViewStyle())
                     .padding()
-                    .background(Color.white.opacity(0.8))
-                    .cornerRadius(10)
-                    .frame(height: 50)
-                    .padding([.leading, .trailing, .top])
-
-                // Third row: Username and Password
-                HStack {
-                    TextField("Username", text: $username)
-                        .padding()
-                        .background(Color.white.opacity(0.8))
-                        .cornerRadius(10)
-                        .frame(height: 50)
-
-                    SecureField("Password", text: $password)
-                        .padding()
-                        .background(Color.white.opacity(0.8))
-                        .cornerRadius(10)
-                        .frame(height: 50)
-                }
-                .padding([.leading, .trailing, .top])
-
-                // Fourth row: UW Net ID
-                TextField("UW Net ID", text: $uwNetID)
-                    .padding()
-                    .background(Color.white.opacity(0.8))
-                    .cornerRadius(10)
-                    .frame(height: 50)
-                    .padding([.leading, .trailing, .top])
-
-                // Sign Up Button
-                Button(action: signUp) {
-                    Text("Sign Up")
-                        .padding()
-                        .frame(maxWidth: .infinity)
-                        .background(Color.blue)
+            } else {
+                Button(action: {
+                    if isCreatingAccount {
+                        signUpUser()
+                    } else {
+                        loginUser()
+                    }
+                }) {
+                    Text(isCreatingAccount ? "Create Account" : "Login")
                         .foregroundColor(.white)
+                        .padding()
+                        .background(Color.blue)
                         .cornerRadius(10)
-                        .padding([.leading, .trailing, .top])
+                        .frame(maxWidth: .infinity)
                 }
-
-                Spacer()
+                .padding(.bottom, 10)
             }
-            .navigationTitle("Sign Up")
-            .padding()
+            
+            Button(action: toggleCreateAccount) {
+                Text(isCreatingAccount ? "Already have an account? Login" : "Don't have an account? Sign up")
+                    .foregroundColor(.blue)
+            }
+
+            if isErrorPresented {
+                Text(errorMessage)
+                    .foregroundColor(.red)
+                    .padding(.top, 10)
+            }
+        }
+        .padding()
+        .alert(isPresented: $isErrorPresented) {
+            Alert(title: Text("Error"), message: Text(errorMessage), dismissButton: .default(Text("OK")))
         }
     }
 
-    private func signUp() {
-        // Handle sign up logic here
-        print("Sign up with details: \(firstName), \(lastName), \(schoolName), \(username), \(password), \(uwNetID)")
+    func loginUser() {
+        isLoading = true
+        Auth.auth().signIn(withEmail: email, password: password) { result, error in
+            if let error = error {
+                isLoading = false
+                errorMessage = error.localizedDescription
+                isErrorPresented = true
+            } else {
+                isLoading = false
+                isLoggedIn = true // Set the binding to true to show the main view
+            }
+        }
+    }
+
+    func signUpUser() {
+        isLoading = true
+        Auth.auth().createUser(withEmail: email, password: password) { result, error in
+            if let error = error {
+                isLoading = false
+                errorMessage = error.localizedDescription
+                isErrorPresented = true
+            } else {
+                isLoading = false
+                // After successful sign-up, switch to login mode
+                isCreatingAccount = false
+                errorMessage = "Account created successfully! Please log in."
+                isErrorPresented = true
+            }
+        }
+    }
+
+    // Toggle between login and create account mode
+    func toggleCreateAccount() {
+        isCreatingAccount.toggle()
     }
 }
 
-#Preview {
-    LoginView()
-}

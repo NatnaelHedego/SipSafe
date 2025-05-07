@@ -1,20 +1,24 @@
-//
-//  SipSafeApp.swift
-//  SipSafe
-//
-//  Created by Natnael Hedego on 3/10/25.
-//
-
+import FirebaseCore
 import SwiftUI
 
 @main
 struct SipSafeApp: App {
-    let persistenceController = PersistenceController.shared
+    // Using AppDelegate for Firebase configuration
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .environment(\.managedObjectContext, persistenceController.container.viewContext)
         }
     }
 }
+
+class AppDelegate: NSObject, UIApplicationDelegate {
+    func application(_ application: UIApplication,
+                     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
+        // Configure Firebase
+        FirebaseApp.configure()
+        return true
+    }
+}
+
